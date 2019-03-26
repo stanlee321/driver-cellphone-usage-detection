@@ -1,1 +1,1 @@
-from .imageprocessor import ImageProcessor
+from .ssdprocessor import SSDProcessor

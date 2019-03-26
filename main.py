@@ -2,13 +2,15 @@ import cv2 # For webcam
 import sys
 import os
 
-from lib.ssd.image_processor import ImageProcessor
+from lib.ssd.ssd_processor import SSDProcessor
 
 IM_WIDTH = 640
 IM_HEIGHT = 480
 
-detect = ImageProcessor()
+detect = SSDProcessor()
 detect.setup()
+
+
 camera = cv2.VideoCapture(0) # For custom video input, replace this 0 with a string with the 'name of your video.mp4'
 
 if ((camera == None) or (not camera.isOpened())):
@@ -16,12 +18,14 @@ if ((camera == None) or (not camera.isOpened())):
     print('Error - could not open video device.')
     print('\n\n')
     exit(0)
+
 ret = camera.set(cv2.CAP_PROP_FRAME_WIDTH,IM_WIDTH)
 ret = camera.set(cv2.CAP_PROP_FRAME_HEIGHT,IM_HEIGHT)
 
 # save the actual dimensions
 actual_video_width = camera.get(cv2.CAP_PROP_FRAME_WIDTH)
 actual_video_height = camera.get(cv2.CAP_PROP_FRAME_HEIGHT)
+
 print('actual video resolution: ' + str(actual_video_width) + ' x ' + str(actual_video_height))
 
 # Initialize frame rate calculation

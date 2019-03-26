@@ -55,6 +55,14 @@ class SSDProcessor(object):
         self.detection_classes = None
         self.num_detections = None
 
+        self.index_to_string = {
+            3: 'car',
+            6: 'bus',
+            8: 'truck',
+            1: 'person',
+            10: 'traffic light'
+        }
+
     def setup(self):
         """
             Setup the model, if model does not exist in path, this will be downloaded
@@ -196,6 +204,55 @@ class SSDProcessor(object):
         
         return annotated_image
 
+    def filter_class(self, detections, class_to_filter):
+
+        data["predictions"] = []
+        # loop over the results and add them to the list of
+        # returned predictions
+        # Filter just car detections.
+        if num > 0:
+            for i in range(num): #enumerate(boxes[0]):
+                classes[0][i] = classes[0][i] + 1               # Added + 1.0  for lite compat.
+                _id = int(classes[0][i])
+                if _id == class_to_filter:
+                    if scores[0][i] >= 0.1:
+                        x0 = int(boxes[0][i][3] * image.shape[1])
+                        y0 = int(boxes[0][i][2] * image.shape[0])
+
+                        x1 = int(boxes[0][i][1] * image.shape[1])
+                        y1 = int(boxes[0][i][0] * image.shape[0])
+
+                        if draw_box is True:
+                            color_map = {}
+
+                            # assign color
+                            r_color = lambda: random.randint(0, 255)
+                            
+                            for i in range(len(boxes[0])):
+                                color_map[i] = (r_color(), r_color(), r_color(), 90)
+
+                            draw = ImageDraw.Draw(pil_image, mode="RGBA")
+                            
+                            draw.rectangle((x0, y0, x1, y1),  outline=color_map[i], fill=color_map[i])
+                            #draw.text((x0, y0),
+                            #          ObjectDetection.index_to_string[int(classes[0][i])],
+                            #          font=ImageFont.truetype("arial"))
+                            # TODO draw text labels into the detection image
+                        r = {
+                            'image': draw,
+                            'coord': {
+                                'xmin': x0, 'ymin': y0,
+                                'xmax': x1, 'ymax': y1
+                            },
+                            'class': model.labels[_id]['name'],          #ObjectDetection.index_to_string[id],
+                            'probability': float(scores[0][i])
+                        }
+                        data["success"] = True
+                        data["predictions"].append(r)
+                    else:
+                        pass
+                else:
+                    pass
     @property
     def labels(self):
         return self._labels
