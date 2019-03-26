@@ -1,19 +1,26 @@
-import numpy as np
 import os
 import six.moves.urllib as urllib
-import tarfile
-import tensorflow as tf
-from PIL import Image
 import sys
+import random
+import tarfile
+import logging
+import click
+from pathlib import Path
+
+import tensorflow as tf
+import numpy as np
+
+# For Draw
+from PIL import Image
+from PIL import ImageDraw
+from matplotlib import cm
+
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '.'))
 
 from object_detection.utils import label_map_util
 from object_detection.utils import visualization_utils as vis_util
 
-import logging
-from pathlib import Path
-import click
 
 
 class SSDProcessor(object):
@@ -61,6 +68,14 @@ class SSDProcessor(object):
             8: 'truck',
             1: 'person',
             10: 'traffic light'
+        }
+
+        self._mod_labels = {
+            3:  {'name': 'car', 'id': 3},
+            6:  {'name': 'bus', 'id': 6},
+            8:  {'name': 'truck', 'id': 8},
+            1:  {'name': 'person', 'id': 1},
+            10: {'name': 'traffic light', 'id': 10}
         }
 
     def setup(self):
@@ -178,7 +193,7 @@ class SSDProcessor(object):
         return prediction
 
 
-    def annotate_image(self, image, boxes, classes, scores, threshold=0.5):
+    def annotate_image(self, image, boxes, classes, scores, threshold=0.5, full_labels=True):
         """
             Draws boxes around the detected objects and labels them
 
@@ -192,67 +207,89 @@ class SSDProcessor(object):
         """
         
         annotated_image = image.copy()
-        vis_util.visualize_boxes_and_labels_on_image_array(
-            annotated_image,
-            np.squeeze(boxes),
-            np.squeeze(classes).astype(np.int32),
-            np.squeeze(scores),
-            self._labels,
-            use_normalized_coordinates=True,
-            line_thickness=8,
-            min_score_thresh=threshold)
-        
+
+        if full_labels:
+            vis_util.visualize_boxes_and_labels_on_image_array(
+                annotated_image,
+                np.squeeze(boxes),
+                np.squeeze(classes).astype(np.int32),
+                np.squeeze(scores),
+                self._labels,
+                use_normalized_coordinates=True,
+                line_thickness=8,
+                min_score_thresh=threshold)
+        else:
+            vis_util.visualize_boxes_and_labels_on_image_array(
+                annotated_image,
+                np.squeeze(boxes),
+                np.squeeze(classes).astype(np.int32),
+                np.squeeze(scores),
+                self._mod_labels,
+                use_normalized_coordinates=True,
+                line_thickness=8,
+                min_score_thresh=threshold)
+
         return annotated_image
 
-    def filter_class(self, detections, class_to_filter):
+    def annotate_image_and_filter(self, frame, boxes, classes, scores, num, min_score_thresh, draw_box):
+        """
+        #####
+        Inputs:
 
-        data["predictions"] = []
+        frame :  Image as 2D numpy array 
+        boxes :  List of detections from the output of the detection method.
+        classes: List of detected classes from the output of the detection method.
+        scores: List of scores as detected from the output of the detection method.
+        num: Integer from the output of the detection method.
+
+        #####
+        Output:
+        2D Tuple : (Annotated image, detections as dictionary)
+        """
+
+        detected_objects = {}
+        detected_objects["predictions"] = []
+
         # loop over the results and add them to the list of
         # returned predictions
         # Filter just car detections.
-        if num > 0:
-            for i in range(num): #enumerate(boxes[0]):
-                classes[0][i] = classes[0][i] + 1               # Added + 1.0  for lite compat.
+
+        if len(num) > 0:
+            for i in range(int(num[-1])): #enumerate(boxes[0]):
                 _id = int(classes[0][i])
-                if _id == class_to_filter:
-                    if scores[0][i] >= 0.1:
-                        x0 = int(boxes[0][i][3] * image.shape[1])
-                        y0 = int(boxes[0][i][2] * image.shape[0])
+                if _id in self.index_to_string:
+                    if scores[0]    [i] >= min_score_thresh:
 
-                        x1 = int(boxes[0][i][1] * image.shape[1])
-                        y1 = int(boxes[0][i][0] * image.shape[0])
+                        x0 = int(boxes[0][i][3] * frame.shape[1])
+                        y0 = int(boxes[0][i][2] * frame.shape[0])
 
-                        if draw_box is True:
-                            color_map = {}
-
-                            # assign color
-                            r_color = lambda: random.randint(0, 255)
-                            
-                            for i in range(len(boxes[0])):
-                                color_map[i] = (r_color(), r_color(), r_color(), 90)
-
-                            draw = ImageDraw.Draw(pil_image, mode="RGBA")
-                            
-                            draw.rectangle((x0, y0, x1, y1),  outline=color_map[i], fill=color_map[i])
-                            #draw.text((x0, y0),
-                            #          ObjectDetection.index_to_string[int(classes[0][i])],
-                            #          font=ImageFont.truetype("arial"))
-                            # TODO draw text labels into the detection image
+                        x1 = int(boxes[0][i][1] * frame.shape[1])
+                        y1 = int(boxes[0][i][0] * frame.shape[0])
+    
                         r = {
-                            'image': draw,
                             'coord': {
                                 'xmin': x0, 'ymin': y0,
                                 'xmax': x1, 'ymax': y1
                             },
-                            'class': model.labels[_id]['name'],          #ObjectDetection.index_to_string[id],
+                            'class': self.index_to_string[_id],          #ObjectDetection.index_to_string[id],
                             'probability': float(scores[0][i])
                         }
-                        data["success"] = True
-                        data["predictions"].append(r)
+                        detected_objects["success"] = True
+                        detected_objects["predictions"].append(r)
                     else:
                         pass
                 else:
                     pass
+            detected_objects['num'] = int(num[-1])
+            
+            if draw_box:
+                frame = self.annotate_image(frame, boxes, classes, scores, 
+                                    threshold=min_score_thresh, 
+                                    full_labels=False)
+            return detected_objects, frame
+        else:
+            detected_objects["success"] = False
+            return detected_objects, frame
     @property
     def labels(self):
         return self._labels
