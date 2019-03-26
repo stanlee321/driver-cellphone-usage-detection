@@ -26,8 +26,9 @@ if ((camera == None) or (not camera.isOpened())):
     print('\n\n')
     exit(0)
 
-ret = camera.set(cv2.CAP_PROP_FRAME_WIDTH,IM_WIDTH)
-ret = camera.set(cv2.CAP_PROP_FRAME_HEIGHT,IM_HEIGHT)
+# Set input resolution
+camera.set(cv2.CAP_PROP_FRAME_WIDTH,IM_WIDTH)
+camera.set(cv2.CAP_PROP_FRAME_HEIGHT,IM_HEIGHT)
 
 # save the actual dimensions
 actual_video_width = camera.get(cv2.CAP_PROP_FRAME_WIDTH)
@@ -96,5 +97,4 @@ while(True):
         break
     frame_count += 1
 camera.release()
-
 cv2.destroyAllWindows()
