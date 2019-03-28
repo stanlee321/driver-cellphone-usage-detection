@@ -3,18 +3,22 @@ import sys
 import os
 import pprint
 from lib.ssd.ssd_processor import SSDProcessor
-
+from src.sort import Sort
 
 pp = pprint.PrettyPrinter(indent=4)
 
 IM_WIDTH = 640
 IM_HEIGHT = 480
 
+# Detector
 detect = SSDProcessor()
 detect.setup()
 
 min_score_thresh = 0.64
 draw_box = True
+
+# Tracker
+tracker = Sort(use_dlib= False) #create instance of the SORT tracker
 
 src = '/home/stanlee321/dwhelper/out.mp4'
 
@@ -43,6 +47,9 @@ freq = cv2.getTickFrequency()
 font = cv2.FONT_HERSHEY_SIMPLEX
 
 frame_count = 0
+
+
+
 while(True):
 
     t1 = cv2.getTickCount()
@@ -61,7 +68,7 @@ while(True):
     boxes = detection['boxes']
     scores = detection['scores']
     classes = detection['classes']
-    num = detection['num']    
+    num = detection['num']
 
     # All the results have been drawn on the frame, so it's time to display it.
     #frame = detect.annotate_image(frame, boxes, classes, scores)
@@ -73,6 +80,14 @@ while(True):
                                                 num, 
                                                 min_score_thresh, 
                                                 draw_box)
+
+    #update tracker
+    trackers = tracker.update(detections, frame)
+
+    for d in trackers:
+        print('TRACKED ::>>>',d)
+        #f_out.write('%d,%d,%d,%d,x,x,x,x,%.3f,%.3f,%.3f,%.3f\n' % (d[4], frame, 1, 1, d[0], d[1], d[2], d[3]))
+
     pp.pprint(detections)
 
 

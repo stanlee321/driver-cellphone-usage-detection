@@ -249,7 +249,7 @@ class SSDProcessor(object):
 
         detected_objects = {}
         detected_objects["predictions"] = []
-
+        detected_objects['association'] = []
         # loop over the results and add them to the list of
         # returned predictions
         # Filter just car detections.
@@ -276,6 +276,11 @@ class SSDProcessor(object):
                         }
                         detected_objects["success"] = True
                         detected_objects["predictions"].append(r)
+
+                        # In the format [[x,y,w,h,score],[x,y,w,h,score],...]
+
+                        box_for_association = [x0,y0, x1,y1, float(scores[0][i]) ]
+                        detected_objects["association"].append(box_for_association)
                     else:
                         pass
                 else:
