@@ -14,11 +14,13 @@ IM_HEIGHT = 480
 detect = SSDProcessor()
 detect.setup()
 
-min_score_thresh = 0.64
+min_score_thresh = 0.50
 draw_box = True
 
+
+
 # Tracker
-tracker = Sort(use_dlib= False) #create instance of the SORT tracker
+tracker = Sort(use_dlib= False, max_age=5, min_hits=0) #create instance of the SORT tracker
 
 src = '/home/stanlee321/dwhelper/out.mp4'
 
@@ -59,7 +61,7 @@ while(True):
 
     ret, frame = camera.read()
     
-    frame = cv2.resize(frame, (1280, 960))
+    frame = cv2.resize(frame, (320, 240))
 
     frame_count += 1
     
@@ -72,7 +74,7 @@ while(True):
 
     # All the results have been drawn on the frame, so it's time to display it.
     #frame = detect.annotate_image(frame, boxes, classes, scores)
-
+    
     detections, frame = detect.annotate_image_and_filter(frame,
                                                 boxes, 
                                                 classes, 
@@ -81,23 +83,26 @@ while(True):
                                                 min_score_thresh, 
                                                 draw_box)
 
-    #update tracker
-    trackers = tracker.update(detections, frame)
+    # The detections from the object detection algorithm mus be in the format:
 
+    # dets - a numpy array of detections in the format [[x,y,w,h,score],[x,y,w,h,score],...]
+
+    #update tracker with the detections...
+    trackers = tracker.update(detections['association'], frame)
+
+    #print('TRACKERS....', trackers)
     for d in trackers:
         print('TRACKED ::>>>',d)
-        #f_out.write('%d,%d,%d,%d,x,x,x,x,%.3f,%.3f,%.3f,%.3f\n' % (d[4], frame, 1, 1, d[0], d[1], d[2], d[3]))
-
-    pp.pprint(detections)
-
+    frame = detect.annodate_image_simple(frame, trackers)
+    # pp.pprint(detections)
 
     # Draw some info
     cv2.putText(frame,"FPS: {0:.2f} frame: {1}".format(frame_rate_calc, frame_count),
             (30,50), 
             font, 
-            1, 
+            0.5, 
             (255,255,0), 
-            2, 
+            1, 
             cv2.LINE_AA)
 
     frame = cv2.resize(frame, (640, 480))

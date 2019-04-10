@@ -9,6 +9,7 @@ from pathlib import Path
 
 import tensorflow as tf
 import numpy as np
+import cv2
 
 # For Draw
 from PIL import Image
@@ -29,13 +30,13 @@ class SSDProcessor(object):
     """
     PATH_TO_MODEL = os.path.join(os.path.dirname(__file__),'..',
                         'model',
-                        'ssdlite_mobilenet_v2_coco',
+                        'ssdlite_mobilenet_v2_kitti',
                         'frozen_inference_graph.pb')
 
     PATH_TO_LABELS = os.path.join(os.path.dirname(__file__),
                         'object_detection',
                         'data',
-                        'mscoco_label_map.pbtxt')
+                        'kitti_label_map.pbtxt') #'car_label_map.pbtxt') #'mscoco_label_map.pbtxt')
 
     LINK_TO_DOWNLOAD_MODEL = "http://download.tensorflow.org/models/object_detection/ssdlite_mobilenet_v2_coco_2018_05_09.tar.gz"
     
@@ -62,20 +63,19 @@ class SSDProcessor(object):
         self.detection_classes = None
         self.num_detections = None
 
-        self.index_to_string = {
-            3: 'car',
-            6: 'bus',
-            8: 'truck',
-            1: 'person',
-            10: 'traffic light'
-        }
-
+        """
         self._mod_labels = {
             3:  {'name': 'car', 'id': 3},
             6:  {'name': 'bus', 'id': 6},
             8:  {'name': 'truck', 'id': 8},
             1:  {'name': 'person', 'id': 1},
             10: {'name': 'traffic light', 'id': 10}
+        }
+        """
+
+        self._mod_labels = {
+            1:  {'name': 'car', 'id': 1},
+            2:  {'name': 'pedestrian', 'id':2}
         }
 
     def setup(self):
@@ -295,6 +295,22 @@ class SSDProcessor(object):
         else:
             detected_objects["success"] = False
             return detected_objects, frame
+
+    def annodate_image_simple(self, frame, rectangles):
+        for rectangle in rectangles:
+            cv2.putText(frame, str(rectangle[4]),
+                        (int(rectangle[0]), int(rectangle[1])),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.5, 
+                        (0, 255, 0),
+                        2)
+                            # Draw some info
+            cv2.rectangle(frame, (int(rectangle[0]), int(rectangle[1])),
+                            (int(rectangle[2]), int(rectangle[3])),
+                            (255, 0, 0), 1)
+
+
+        return frame
     @property
     def labels(self):
         return self._labels

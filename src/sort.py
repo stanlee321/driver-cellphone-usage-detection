@@ -1,18 +1,20 @@
 from __future__ import print_function
 
-
-from data_association import associate_detections_to_trackers
-from correlation_tracker import CorrelationTracker
-from kalman_tracker import KalmanBoxTracker
-"""
-As implemented in https://github.com/abewley/sort but with some modifications
-"""
-
 import numpy as np
 import sys
 import os
 
 sys.path.append(os.path.join(os.path.dirname(__file__), '.'))
+
+from data_association import associate_detections_to_trackers
+from correlation_tracker import CorrelationTracker
+from kalman_tracker import KalmanBoxTracker
+
+
+"""
+As implemented in https://github.com/abewley/sort but with some modifications
+"""
+
 
 
 class Sort:
@@ -37,6 +39,8 @@ class Sort:
 
         NOTE: The number of objects returned may differ from the number of detections provided.
         """
+        dets = np.array(dets)
+
         self.frame_count += 1
         # get predicted locations from existing trackers.
         trks = np.zeros((len(self.trackers), 5))
@@ -65,7 +69,6 @@ class Sort:
             # create and initialise new trackers for unmatched detections
             for i in unmatched_dets:
                 if not self.use_dlib:
-                    print(dets)
                     trk = KalmanBoxTracker(dets[i, :])
                 else:
                     trk = CorrelationTracker(dets[i, :], img)
@@ -76,11 +79,12 @@ class Sort:
             if dets == []:
                 trk.update([], img)
             d = trk.get_state()
-            if((trk.time_since_update < 1) and (trk.hit_streak >= self.min_hits or self.frame_count <= self.min_hits)):
+            if((trk.time_since_update < 1)  and ((trk.hit_streak >= self.min_hits) or (self.frame_count <= self.min_hits))):
                 # +1 as MOT benchmark requires positive
                 ret.append(np.concatenate((d, [trk.id+1])).reshape(1, -1))
             i -= 1
             # remove dead tracklet
+            print('tsup', trk.time_since_update)
             if(trk.time_since_update > self.max_age):
                 self.trackers.pop(i)
         if(len(ret) > 0):
