@@ -18,6 +18,10 @@ https://github.com/ZidanMusk/experimenting-with-sort
 
 This uses a modified version of ssd_mobilenetv2 trained on Kitti dataset for car and pedestrian detection.
 
+The Sort tracking algorithm expects inputs from detection in the format:
+
+`dets - a numpy array of detections in the format [[x,y,w,h,score],[x,y,w,h,score],...]`
+
 # Get started
 
 run 
